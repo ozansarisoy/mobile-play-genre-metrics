@@ -9,7 +9,7 @@ from analysis import (
     dunn_posthoc, correlation_matrix, cluster_genres, iqr_outliers, popularity_score,
     genre_momentum_static, forecast_live_trend,
 )
-from i18n import get_translator, translate_columns, translate_values
+from i18n import get_translator, translate_columns, translate_values, VALUE_LABELS
 from theme import init_theme, apply_theme, plotly_template, THEME_LABELS
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -61,6 +61,32 @@ with title_col:
     st.title(t("app_title"))
     st.caption(t("app_caption", n=len(df), g=df["Genre_Group"].nunique()))
 
+
+@st.cache_data
+def get_last_updated():
+    """Newest fetched_at/date timestamp across all three live data sources."""
+    timestamps = []
+    sources = [
+        (os.path.join(APP_DIR, "data", "snapshots.csv"), "fetched_at"),
+        (os.path.join(APP_DIR, "data", "apple_snapshots.csv"), "fetched_at"),
+        (os.path.join(APP_DIR, "data", "wiki_pageviews.csv"), "fetched_at"),
+    ]
+    for path, col in sources:
+        try:
+            s = pd.read_csv(path, usecols=[col], parse_dates=[col])[col]
+            if not s.empty:
+                timestamps.append(s.max())
+        except Exception:
+            continue
+    return max(timestamps) if timestamps else None
+
+
+_last_updated = get_last_updated()
+if _last_updated is not None:
+    st.caption(f"🕒 {t('last_updated_prefix')} {_last_updated.strftime('%Y-%m-%d %H:%M UTC')}")
+else:
+    st.caption(f"🕒 {t('last_updated_prefix')} {t('last_updated_none')}")
+
 with st.expander(t("methodology_expander"), expanded=False):
     st.markdown(t("methodology_md"))
 
@@ -70,6 +96,32 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 ])
 
 with tab1:
+    with st.expander(f"🔎 {t('search_header')}", expanded=False):
+        search_q = st.text_input(t("search_header"), placeholder=t("search_placeholder"),
+                                  label_visibility="collapsed", key="game_search")
+        if search_q.strip():
+            matches = df[df["App"].str.contains(search_q.strip(), case=False, na=False, regex=False)]
+            if matches.empty:
+                st.info(t("search_no_match"))
+            else:
+                if len(matches) > 1:
+                    st.caption(t("search_multiple_matches"))
+                    matches = matches.reindex(
+                        matches["App"].str.len().sort_values().index
+                    )
+                game = matches.iloc[0]
+                genre_peers = df[df["Genre_Group"] == game["Genre_Group"]]
+                pct = (genre_peers["Popularity_Score"] < game["Popularity_Score"]).mean() * 100
+                genre_label = VALUE_LABELS.get(lang, VALUE_LABELS["en"]).get(
+                    game["Genre_Group"], game["Genre_Group"])
+                st.markdown(f"**{t('search_result_header')}: {game['App']}**")
+                gcol1, gcol2, gcol3, gcol4 = st.columns(4)
+                gcol1.metric("Rating" if lang == "en" else "Puan", f"{game['Rating_num']:.2f}")
+                gcol2.metric("Installs" if lang == "en" else "Kurulum", f"{game['Installs_num']:,.0f}")
+                gcol3.metric("Reviews" if lang == "en" else "Yorum", f"{game['Reviews_num']:,.0f}")
+                gcol4.metric("Genre" if lang == "en" else "Tür", genre_label)
+                st.success(t("search_percentile", pct=f"{pct:.0f}", genre=genre_label))
+
     c1, c2, c3, c4 = st.columns(4)
     c1.metric(t("metric_total_games"), f"{len(df):,}")
     c2.metric(t("metric_n_genres"), df["Genre_Group"].nunique())
@@ -120,6 +172,45 @@ with tab2:
     fig4 = px.imshow(corr, text_auto=True, color_continuous_scale="RdBu_r", zmin=-1, zmax=1, title=t("corr_title"), template=tpl)
     st.plotly_chart(fig4, width='stretch')
     st.markdown(t("corr_note"))
+
+    st.markdown("---")
+    st.markdown(f"### {t('compare_header')}")
+    genre_options = sorted(df["Genre_Group"].unique())
+    genre_label_map = VALUE_LABELS.get(lang, VALUE_LABELS["en"])
+    cmp_col1, cmp_col2 = st.columns(2)
+    with cmp_col1:
+        genre_a = st.selectbox(t("compare_pick_a"), genre_options,
+                                format_func=lambda v: genre_label_map.get(v, v), key="cmp_a")
+    with cmp_col2:
+        genre_b_options = [g for g in genre_options if g != genre_a]
+        genre_b = st.selectbox(t("compare_pick_b"), genre_b_options,
+                                format_func=lambda v: genre_label_map.get(v, v), key="cmp_b")
+
+    if genre_a and genre_b and genre_a != genre_b:
+        df_a = df[df["Genre_Group"] == genre_a]
+        df_b = df[df["Genre_Group"] == genre_b]
+        label_a = genre_label_map.get(genre_a, genre_a)
+        label_b = genre_label_map.get(genre_b, genre_b)
+
+        cmp_metrics = {
+            "Rating" if lang == "en" else "Puan": ("Rating_num", "mean", ".2f"),
+            "Installs" if lang == "en" else "Kurulum": ("Installs_num", "median", ",.0f"),
+            "Reviews" if lang == "en" else "Yorum": ("Reviews_num", "mean", ",.0f"),
+            "Size (MB)" if lang == "en" else "Boyut (MB)": ("Size_MB", "mean", ".1f"),
+            "Popularity" if lang == "en" else "Popülerlik": ("Popularity_Score", "mean", ".2f"),
+        }
+        rows = []
+        for label, (col, agg, fmt) in cmp_metrics.items():
+            val_a = getattr(df_a[col], agg)()
+            val_b = getattr(df_b[col], agg)()
+            rows.append({
+                ("Metric" if lang == "en" else "Metrik"): label,
+                label_a: format(val_a, fmt) if pd.notna(val_a) else "—",
+                label_b: format(val_b, fmt) if pd.notna(val_b) else "—",
+            })
+        st.dataframe(pd.DataFrame(rows), width='stretch', hide_index=True)
+    else:
+        st.info(t("compare_no_selection"))
 
 with tab3:
     st.markdown(t("normality_header"))
@@ -321,6 +412,35 @@ with tab6:
         )
         leaderboard = translate_values(leaderboard, lang, columns=["genre"])
         st.dataframe(translate_columns(leaderboard, lang), width='stretch')
+
+    st.markdown("---")
+    st.markdown(t("wiki_header"))
+    st.markdown(t("wiki_intro"))
+
+    wiki_path = os.path.join(APP_DIR, "data", "wiki_pageviews.csv")
+    try:
+        wiki_snaps = pd.read_csv(wiki_path, parse_dates=["fetched_at"])
+    except Exception:
+        wiki_snaps = pd.DataFrame()
+
+    if wiki_snaps.empty or wiki_snaps["fetched_at"].isna().all():
+        st.warning(t("wiki_no_data"))
+    else:
+        wiki_snaps["fetched_date"] = wiki_snaps["fetched_at"].dt.date
+        wiki_daily_t = translate_values(wiki_snaps, lang, columns=["genre"])
+        fig10 = px.line(wiki_daily_t, x="fetched_at", y="views", color="genre", markers=True,
+                         title=t("wiki_trend_title"), template=tpl)
+        st.plotly_chart(fig10, width='stretch')
+
+        st.markdown(t("wiki_leaderboard_header"))
+        wiki_latest_date = wiki_snaps["fetched_date"].max()
+        wiki_latest = wiki_snaps[wiki_snaps["fetched_date"] == wiki_latest_date]
+        wiki_leaderboard = (
+            wiki_latest.groupby("genre")["views"].sum()
+            .sort_values(ascending=False).reset_index()
+        )
+        wiki_leaderboard = translate_values(wiki_leaderboard, lang, columns=["genre"])
+        st.dataframe(translate_columns(wiki_leaderboard, lang), width='stretch')
 
 st.markdown("---")
 st.caption(t("footer"))

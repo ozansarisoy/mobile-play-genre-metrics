@@ -2,6 +2,42 @@
 
 All notable changes to this project are documented here.
 
+## [1.3.0] — 2026-08-29
+### Added
+- **Wikipedia Pageviews integration** (`live_fetch_wikipedia.py`) — a third, independent
+  live data signal: daily page-view counts for each genre's Wikipedia article, via
+  Wikimedia's official, free, keyless REST API. Covers all 16 genres (each mapped to
+  its general/overview Wikipedia article, not a single game, so the signal reflects
+  genre-level interest). Runs daily in the same GitHub Actions job, with
+  `continue-on-error: true` like the Apple fetcher — a failure here never blocks the
+  Google Play or Apple snapshots from committing.
+- New "Wikipedia interest" section in the Live Monitoring tab: a daily views-by-genre
+  trend chart and a same-day leaderboard of most-viewed genre articles.
+- **"Live data last updated" badge** under the app title — shows the newest timestamp
+  across all three live sources (Google Play, Apple, Wikipedia) at a glance, or an
+  honest "no live data yet" message before the first snapshot.
+- **Genre Comparison Mode** (in the Genre Comparison tab) — pick any two genres and see
+  a side-by-side table of rating, installs, reviews, size, and popularity score.
+- **Find a Game search bar** (top of the Overview tab) — type any (partial) game name,
+  see its core stats and its percentile rank within its own genre by popularity score.
+- 6 new automated tests (Wikipedia genre-article validity, mocked-response parsing,
+  empty-data handling, network-failure resilience, search bar exercised with a real
+  query, genre comparison exercised with real selections). Suite is now 29 tests.
+
+### Known limitation — please verify on first live run
+- Same as the Apple integration: `live_fetch_wikipedia.py` was built and logic-tested
+  against a **mocked** Wikimedia response; the sandbox it was built in cannot reach
+  wikimedia.org. The endpoint is official, documented, and has been stable for years,
+  but check the Actions log for "HATA:"/"UYARI:" lines after the first real run to
+  confirm the genre article titles resolve correctly.
+
+## [1.2.1] — 2026-08-29
+### Changed
+- Default language on first load is now **Turkish** (was English). Default theme on
+  first load is now **Dark** (was Light). Both remain fully switchable at any time via
+  the selectors — this only changes what a fresh session sees before the user picks
+  anything. Verified across all 4 language x theme combinations with zero exceptions.
+
 ## [1.2.0] — 2026-08-29
 ### Added
 - **Apple App Store live chart integration** (`live_fetch_apple.py`) — a second,

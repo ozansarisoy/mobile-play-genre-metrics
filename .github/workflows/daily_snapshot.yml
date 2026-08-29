@@ -22,14 +22,22 @@ jobs:
       - name: Bağımlılıkları kur
         run: pip install google-play-scraper
 
-      - name: Canlı veriyi çek ve snapshots.csv'ye ekle
+      - name: Canlı veriyi çek ve snapshots.csv'ye ekle (Google Play)
         run: python live_fetch.py
+
+      - name: Canlı veriyi çek ve apple_snapshots.csv'ye ekle (Apple App Store)
+        run: python live_fetch_apple.py
+        continue-on-error: true  # Apple ucu tamamen erişilemez olsa bile diğer verileri kaybetmeyelim
+
+      - name: Canlı veriyi çek ve wiki_pageviews.csv'ye ekle (Wikipedia)
+        run: python live_fetch_wikipedia.py
+        continue-on-error: true
 
       - name: Değişikliği commit'le
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/snapshots.csv
+          git add data/snapshots.csv data/apple_snapshots.csv data/wiki_pageviews.csv
           git diff --quiet --cached || git commit -m "Günlük veri snapshot: $(date -u +'%Y-%m-%d')"
           git pull --rebase
           git push

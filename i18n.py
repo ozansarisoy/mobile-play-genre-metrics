@@ -219,6 +219,31 @@ the Google Play signal above.
         "apple_leaderboard_header": "#### Latest day — best average rank per genre",
         "apple_note": "Rank 1 is the most popular app in that genre on the US App Store that day. "
                       "A falling line means the genre's presence in the charts is strengthening.",
+        "wiki_header": "### Wikipedia interest (third live signal)",
+        "wiki_intro": """
+**Why a third signal?** A genre's Wikipedia article traffic is a rough but
+free, independent public-interest proxy — it moves for different reasons
+than app-store rank (news coverage, viral trends, incoming links) and isn't
+affected by app-store algorithm changes, so it's a useful cross-check rather
+than a repeat of the Google Play or Apple signals above.
+        """,
+        "wiki_no_data": "No Wikipedia pageview snapshots yet. This populates once GitHub Actions "
+                         "has run `live_fetch_wikipedia.py` at least once.",
+        "wiki_trend_title": "Daily Wikipedia article views by genre",
+        "wiki_leaderboard_header": "#### Latest day — most-viewed genre articles",
+        "last_updated_prefix": "Live data last updated:",
+        "last_updated_none": "No live data collected yet",
+        "compare_header": "Genre Comparison Mode",
+        "compare_pick_a": "Genre A",
+        "compare_pick_b": "Genre B",
+        "compare_metric": "Metric",
+        "compare_no_selection": "Pick two different genres to compare.",
+        "search_header": "Find a Game",
+        "search_placeholder": "Type a game name...",
+        "search_no_match": "No game found matching that name.",
+        "search_multiple_matches": "Multiple matches — showing the closest one.",
+        "search_percentile": "This game ranks better than {pct}% of games in its genre ({genre}) by popularity score.",
+        "search_result_header": "Result",
     },
     "tr": {
         "app_title": "Mobile Play Genre Metrics (MPGM)",
@@ -446,6 +471,32 @@ sinyalinden bağımsız olarak günlük takip eder.
         "apple_leaderboard_header": "#### Son gün — tür başına en iyi ortalama sıra",
         "apple_note": "1. sıra, o gün ABD App Store'da o türdeki en popüler uygulama demektir. "
                       "Düşen bir çizgi, türün chart'lardaki varlığının güçlendiği anlamına gelir.",
+        "wiki_header": "### Wikipedia ilgisi (üçüncü canlı sinyal)",
+        "wiki_intro": """
+**Neden üçüncü bir sinyal?** Bir türün Wikipedia makalesi trafiği, kaba ama
+ücretsiz ve bağımsız bir kamuoyu ilgisi göstergesidir — haber kapsamı, viral
+trendler, gelen bağlantılar gibi app-store sıralamasından farklı nedenlerle
+hareket eder ve app-store algoritma değişikliklerinden etkilenmez, bu yüzden
+yukarıdaki Google Play/Apple sinyallerinin tekrarı değil, tamamlayıcı bir
+kontrol noktasıdır.
+        """,
+        "wiki_no_data": "Henüz Wikipedia pageview snapshot'ı yok. GitHub Actions "
+                         "`live_fetch_wikipedia.py`'yi en az bir kez çalıştırınca dolar.",
+        "wiki_trend_title": "Tür bazlı günlük Wikipedia makale görüntülenmesi",
+        "wiki_leaderboard_header": "#### Son gün — en çok görüntülenen tür makaleleri",
+        "last_updated_prefix": "Canlı veri son güncelleme:",
+        "last_updated_none": "Henüz canlı veri toplanmadı",
+        "compare_header": "Tür Karşılaştırma Modu",
+        "compare_pick_a": "Tür A",
+        "compare_pick_b": "Tür B",
+        "compare_metric": "Metrik",
+        "compare_no_selection": "Karşılaştırmak için iki farklı tür seç.",
+        "search_header": "Oyun Bul",
+        "search_placeholder": "Oyun adı yaz...",
+        "search_no_match": "Bu isimle eşleşen oyun bulunamadı.",
+        "search_multiple_matches": "Birden fazla eşleşme var — en yakın olan gösteriliyor.",
+        "search_percentile": "Bu oyun, kendi türündeki ({genre}) oyunların %{pct}'inden daha popüler (popülerlik skoruna göre).",
+        "search_result_header": "Sonuç",
     },
 }
 
@@ -473,6 +524,7 @@ COLUMN_LABELS = {
         "r_squared": "R-squared", "n_points": "Data points",
         "rank": "Rank", "app_name": "App", "developer": "Developer",
         "avg_rank": "Avg rank", "country": "Country",
+        "article": "Article", "date": "Date", "views": "Views",
     },
     "tr": {
         "n": "n", "avg_rating": "Ortalama puan", "median_rating": "Medyan puan",
@@ -496,6 +548,7 @@ COLUMN_LABELS = {
         "r_squared": "R-kare", "n_points": "Veri noktası",
         "rank": "Sıra", "app_name": "Uygulama", "developer": "Geliştirici",
         "avg_rank": "Ort. sıra", "country": "Ülke",
+        "article": "Makale", "date": "Tarih", "views": "Görüntülenme",
     },
 }
 
