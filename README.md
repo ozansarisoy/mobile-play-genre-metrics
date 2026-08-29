@@ -1,6 +1,6 @@
 <p align="center"><img src="assets/logo_icon_square.png" width="120" alt="MPGM logo"></p>
 <h1 align="center">MPGM — Mobile Play Genre Metrics</h1>
-   📹 [Watch the promo video](MPGM-Promo.mp4)
+[Watch the promo video](MPGM-Promo.mp4)
 <p align="center"><i>Which mobile game genre is winning right now — and which one is next?</i></p>
 
 ---
