@@ -1,9 +1,5 @@
 <p align="center"><img src="assets/logo_icon_square.png" width="120" alt="MPGM logo"></p>
 <h1 align="center">MPGM — Mobile Play Genre Metrics</h1>
-
-https://github.com/user-attachments/assets/9c717cd7-caf6-4bee-a9cf-ff4dbc201e69
-
-
 <p align="center"><i>Which mobile game genre is winning right now — and which one is next?</i></p>
 
 ---
@@ -43,10 +39,11 @@ an elbow chart.
 cleaned dataset by genre, and export it as CSV.
 
 **Live Monitoring** is the newest and most different tab: a genre momentum
-proxy built from real update-recency data, plus a Linear Regression forecast
-that projects each genre's trend forward once enough daily snapshots have
-accumulated — fed by a GitHub Actions job that runs for free, every day,
-with no server to maintain.
+proxy built from real update-recency data, a Linear Regression forecast
+that projects each genre's Google Play trend forward, and — new in v1.2 —
+a second, independent live signal from Apple's real, ranked Top Free Games
+chart per genre. All fed by free GitHub Actions jobs, every day, with no
+server to maintain.
 
 ### Why these specific methods?
 
@@ -69,6 +66,14 @@ rating, review count, and install range once a day, appending it to a
 growing time series. Genres with fewer than 5 collected data points are
 explicitly labeled "insufficient data" in the forecast rather than shown a
 confident-looking number that isn't earned yet.
+
+**Apple's App Store, on the other hand, does publish an official, free,
+keyless feed of its real Top Free Games chart, per genre.** So `live_fetch_apple.py`
+fetches that directly — real market rank, not a proxy — for every genre
+Apple has a dedicated chart for, and appends it to `data/apple_snapshots.csv`
+alongside the Google Play signal. Both run in the same daily GitHub Actions
+job; a failure in either one is logged and skipped rather than blocking the
+other, and never crashes the workflow.
 
 ### Try it locally
 
@@ -94,7 +99,8 @@ app.py                    the Streamlit UI — 6 tabs, English/Turkish
 analysis.py                 every statistic, cluster, and forecast function
 data_pipeline.py              raw CSV -> cleaned DataFrame
 i18n.py                         EN/TR text + value translation layer
-live_fetch.py                  daily live-data collector (run by GitHub Actions)
+live_fetch.py                  daily live-data collector, Google Play (run by GitHub Actions)
+live_fetch_apple.py             daily live-data collector, Apple App Store real chart rank
 .github/workflows/                 daily_snapshot.yml — the free cron job
 data/                                raw dataset + live snapshot time series
 assets/                                logo, favicon

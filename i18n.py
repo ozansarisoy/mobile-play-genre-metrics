@@ -203,6 +203,22 @@ model that captures seasonality (e.g. Holt-Winters exponential smoothing).
                                   "This section activates once several days of data have accumulated.",
         "forecast_horizon_label": "Forecast horizon (days)",
         "forecast_metric_label": "Metric to forecast",
+        "apple_header": "### Apple App Store live rank (second live signal)",
+        "apple_intro": """
+**Why a second live source?** The Google Play watchlist above tracks a
+handful of representative apps because Google Play has no free official
+charts API. Apple, by contrast, publishes an official, free, keyless feed of
+its **real, ranked** Top Free Games chart per genre — not a proxy, the
+actual market position. This section tracks that daily, independently of
+the Google Play signal above.
+        """,
+        "apple_no_data": "No Apple chart snapshots yet. This populates once the GitHub Actions "
+                          "workflow has run `live_fetch_apple.py` at least once.",
+        "apple_metric_avg_rank": "Average rank (lower = more popular)",
+        "apple_trend_title": "Average Apple Top Free Games rank by genre over time",
+        "apple_leaderboard_header": "#### Latest day — best average rank per genre",
+        "apple_note": "Rank 1 is the most popular app in that genre on the US App Store that day. "
+                      "A falling line means the genre's presence in the charts is strengthening.",
     },
     "tr": {
         "app_title": "Mobile Play Genre Metrics (MPGM)",
@@ -414,6 +430,22 @@ modele (ör. Holt-Winters üstel düzeltme) geçilebilir.
                                   "Bu bölüm birkaç günlük veri biriktikten sonra aktifleşir.",
         "forecast_horizon_label": "Tahmin ufku (gün)",
         "forecast_metric_label": "Tahmin edilecek metrik",
+        "apple_header": "### Apple App Store canlı sıralaması (ikinci canlı sinyal)",
+        "apple_intro": """
+**Neden ikinci bir canlı kaynak?** Yukarıdaki Google Play izleme listesi
+birkaç temsilci uygulamayı takip ediyor çünkü Google Play'de ücretsiz resmi
+bir chart API'si yok. Apple ise tür başına **gerçek, sıralanmış** Top Free
+Games chart'ını resmi, ücretsiz, anahtarsız bir feed ile yayınlıyor — bu bir
+tahmin değil, gerçek pazar konumu. Bu bölüm bunu yukarıdaki Google Play
+sinyalinden bağımsız olarak günlük takip eder.
+        """,
+        "apple_no_data": "Henüz Apple chart snapshot'ı yok. GitHub Actions workflow'u "
+                          "`live_fetch_apple.py`'yi en az bir kez çalıştırınca dolar.",
+        "apple_metric_avg_rank": "Ortalama sıra (düşük = daha popüler)",
+        "apple_trend_title": "Zaman içinde tür bazlı ortalama Apple Top Free Games sırası",
+        "apple_leaderboard_header": "#### Son gün — tür başına en iyi ortalama sıra",
+        "apple_note": "1. sıra, o gün ABD App Store'da o türdeki en popüler uygulama demektir. "
+                      "Düşen bir çizgi, türün chart'lardaki varlığının güçlendiği anlamına gelir.",
     },
 }
 
@@ -439,6 +471,8 @@ COLUMN_LABELS = {
         "genre": "Genre", "t_days": "Days", "slope_per_day": "Slope/day",
         "direction": "Direction", "forecast_value": "Forecast value",
         "r_squared": "R-squared", "n_points": "Data points",
+        "rank": "Rank", "app_name": "App", "developer": "Developer",
+        "avg_rank": "Avg rank", "country": "Country",
     },
     "tr": {
         "n": "n", "avg_rating": "Ortalama puan", "median_rating": "Medyan puan",
@@ -460,6 +494,8 @@ COLUMN_LABELS = {
         "genre": "Tür", "t_days": "Gün", "slope_per_day": "Eğim/gün",
         "direction": "Yön", "forecast_value": "Tahmin değeri",
         "r_squared": "R-kare", "n_points": "Veri noktası",
+        "rank": "Sıra", "app_name": "Uygulama", "developer": "Geliştirici",
+        "avg_rank": "Ort. sıra", "country": "Ülke",
     },
 }
 

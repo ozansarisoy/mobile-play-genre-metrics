@@ -285,5 +285,42 @@ with tab6:
         forecast_df = translate_values(forecast_df, lang, columns=["genre", "direction"])
         st.dataframe(translate_columns(forecast_df.round(4), lang), width='stretch')
 
+    st.markdown("---")
+    st.markdown(t("apple_header"))
+    st.markdown(t("apple_intro"))
+
+    apple_path = os.path.join(APP_DIR, "data", "apple_snapshots.csv")
+    try:
+        apple_snaps = pd.read_csv(apple_path, parse_dates=["fetched_at"])
+    except Exception:
+        apple_snaps = pd.DataFrame()
+
+    if apple_snaps.empty or apple_snaps["fetched_at"].isna().all():
+        st.warning(t("apple_no_data"))
+    else:
+        apple_snaps["fetched_date"] = apple_snaps["fetched_at"].dt.date
+        apple_daily = (
+            apple_snaps.groupby(["fetched_at", "genre"])["rank"]
+            .mean()
+            .reset_index()
+            .rename(columns={"rank": "avg_rank"})
+        )
+        apple_daily_t = translate_values(apple_daily, lang, columns=["genre"])
+        fig9 = px.line(apple_daily_t, x="fetched_at", y="avg_rank", color="genre", markers=True,
+                        title=t("apple_trend_title"), template=tpl)
+        fig9.update_yaxes(autorange="reversed")  # rank 1 = best, should read as "up"
+        st.plotly_chart(fig9, width='stretch')
+        st.caption(t("apple_note"))
+
+        st.markdown(t("apple_leaderboard_header"))
+        latest_date = apple_snaps["fetched_date"].max()
+        latest = apple_snaps[apple_snaps["fetched_date"] == latest_date]
+        leaderboard = (
+            latest.groupby("genre")["rank"].mean().round(1)
+            .sort_values().reset_index().rename(columns={"rank": "avg_rank"})
+        )
+        leaderboard = translate_values(leaderboard, lang, columns=["genre"])
+        st.dataframe(translate_columns(leaderboard, lang), width='stretch')
+
 st.markdown("---")
 st.caption(t("footer"))

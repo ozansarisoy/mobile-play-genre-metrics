@@ -2,6 +2,35 @@
 
 All notable changes to this project are documented here.
 
+## [1.2.0] — 2026-08-29
+### Added
+- **Apple App Store live chart integration** (`live_fetch_apple.py`) — a second,
+  independent live data signal alongside the existing Google Play watchlist. Fetches
+  Apple's official, free, keyless Top Free Games chart per genre (real market rank,
+  not a proxy) via `https://itunes.apple.com/{country}/rss/topfreeapplications/...`,
+  covering 15 of the app's 16 genres (all except "Casual", which has no dedicated
+  Apple chart genre ID — that genre keeps its existing Google Play coverage).
+- New "Apple App Store live rank" section in the Live Monitoring tab: a genre-level
+  average-rank trend chart (inverted y-axis so an upward-reading line means the genre
+  is climbing) and a same-day leaderboard table of best average rank per genre.
+- Runs daily in the same GitHub Actions job as the Google Play fetcher, with
+  `continue-on-error: true` — if Apple's endpoint is ever unreachable on a given day,
+  the Google Play snapshot still commits normally; nothing is lost.
+- 4 new automated tests: genre ID table validity, JSON-parsing logic against a mocked
+  Apple response, and a check that a network failure returns an empty list rather than
+  raising. Suite is now 23 tests.
+- Fully bilingual (EN/TR) like every other section of the app.
+
+### Known limitation — please verify on first live run
+- This integration was built and logic-tested with a **mocked** Apple response — the
+  environment it was built in cannot reach `itunes.apple.com` to test the live
+  endpoint. The endpoint is publicly documented and has been used by third parties for
+  years, but its availability has occasionally been reported as flaky in Apple
+  developer forums. The code is written defensively (a failure for one genre is
+  logged and skipped, never crashes the run), so the worst case if the endpoint has
+  changed shape is simply an empty `apple_snapshots.csv` — check the Actions log for
+  "HATA:" lines after the first real run to confirm it's working as expected.
+
 ## [1.1.1] — 2026-08-29
 ### Fixed
 - Light theme showed a broken, mismatched look: selectbox dropdowns and Plotly chart
