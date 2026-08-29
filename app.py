@@ -10,6 +10,7 @@ from analysis import (
     genre_momentum_static, forecast_live_trend,
 )
 from i18n import get_translator, translate_columns, translate_values
+from theme import init_theme, apply_theme, plotly_template, THEME_LABELS
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -18,8 +19,9 @@ st.set_page_config(page_title="Mobile Play Genre Metrics (MPGM)", layout="wide",
 
 if "lang" not in st.session_state:
     st.session_state["lang"] = "en"
+init_theme()
 
-lang_col, _ = st.columns([1, 5])
+lang_col, theme_col, _ = st.columns([1, 1, 4])
 with lang_col:
     choice = st.selectbox(
         "Language / Dil", options=["English", "Türkçe"],
@@ -29,6 +31,19 @@ with lang_col:
 st.session_state["lang"] = "en" if choice == "English" else "tr"
 lang = st.session_state["lang"]
 t = get_translator(lang)
+
+with theme_col:
+    theme_labels = THEME_LABELS[lang]
+    theme_choice = st.selectbox(
+        theme_labels["toggle_label"],
+        options=["light", "dark"],
+        format_func=lambda v: theme_labels[v],
+        index=0 if st.session_state["theme"] == "light" else 1,
+        label_visibility="collapsed",
+    )
+st.session_state["theme"] = theme_choice
+apply_theme(theme_choice)
+tpl = plotly_template(theme_choice)
 
 logo_col, title_col = st.columns([1, 8])
 with logo_col:
@@ -67,7 +82,7 @@ with tab1:
         genre_counts.columns = ["Genre_Group", "count"]
         genre_counts = translate_values(genre_counts, lang, columns=["Genre_Group"])
         fig = px.bar(genre_counts, x="count", y="Genre_Group", orientation="h",
-                      title=t("chart_games_per_genre"))
+                      title=t("chart_games_per_genre"), template=tpl)
         fig.update_layout(yaxis={"categoryorder": "total ascending"}, yaxis_title="", xaxis_title="")
         st.plotly_chart(fig, width='stretch')
 
@@ -75,13 +90,13 @@ with tab1:
         installs_by_genre = df.groupby("Genre_Group")["Installs_num"].sum().sort_values(ascending=False).reset_index()
         installs_by_genre = translate_values(installs_by_genre, lang, columns=["Genre_Group"])
         fig2 = px.bar(installs_by_genre, x="Installs_num", y="Genre_Group", orientation="h",
-                       title=t("chart_installs_per_genre"), log_x=True)
+                       title=t("chart_installs_per_genre"), log_x=True, template=tpl)
         fig2.update_layout(yaxis={"categoryorder": "total ascending"}, xaxis_title=t("x_total_installs_log"), yaxis_title="")
         st.plotly_chart(fig2, width='stretch')
 
     st.markdown(f"#### {t('chart_rating_boxplot')}")
     box_df = translate_values(df[["Genre_Group", "Rating_num"]], lang, columns=["Genre_Group"])
-    fig3 = px.box(box_df, x="Genre_Group", y="Rating_num", points="outliers", title=t("chart_rating_boxplot"))
+    fig3 = px.box(box_df, x="Genre_Group", y="Rating_num", points="outliers", title=t("chart_rating_boxplot"), template=tpl)
     fig3.update_layout(xaxis_tickangle=-40, xaxis_title="", yaxis_title="")
     st.plotly_chart(fig3, width='stretch')
     st.markdown(t("boxplot_note"))
@@ -102,7 +117,7 @@ with tab2:
 
     st.markdown(t("corr_header"))
     corr = correlation_matrix(df, lang=lang)
-    fig4 = px.imshow(corr, text_auto=True, color_continuous_scale="RdBu_r", zmin=-1, zmax=1, title=t("corr_title"))
+    fig4 = px.imshow(corr, text_auto=True, color_continuous_scale="RdBu_r", zmin=-1, zmax=1, title=t("corr_title"), template=tpl)
     st.plotly_chart(fig4, width='stretch')
     st.markdown(t("corr_note"))
 
@@ -149,11 +164,11 @@ with tab4:
 
     colc1, colc2 = st.columns([1, 1])
     with colc1:
-        fig5 = px.line(diag, x="k", y="silhouette", markers=True, title=t("silhouette_title", k=best_k))
+        fig5 = px.line(diag, x="k", y="silhouette", markers=True, title=t("silhouette_title", k=best_k), template=tpl)
         fig5.add_vline(x=best_k, line_dash="dash", line_color="red")
         st.plotly_chart(fig5, width='stretch')
     with colc2:
-        fig6 = px.line(diag, x="k", y="inertia", markers=True, title=t("elbow_title"))
+        fig6 = px.line(diag, x="k", y="inertia", markers=True, title=t("elbow_title"), template=tpl)
         st.plotly_chart(fig6, width='stretch')
 
     st.markdown(t("cluster_result_header", k=best_k))
@@ -165,6 +180,7 @@ with tab4:
         color=agg["cluster"].astype(str), size="avg_size",
         hover_name="Genre_Group", title=t("cluster_scatter_title"),
         labels={"avg_log_installs": t("cluster_x"), "avg_rating": t("cluster_y"), "color": t("cluster_color")},
+        template=tpl,
     )
     st.plotly_chart(fig7, width='stretch')
 
@@ -249,7 +265,8 @@ with tab6:
         trend = translate_values(trend, lang, columns=["genre"])
         if trend[metric].notna().sum() > 0:
             fig8 = px.line(trend, x="fetched_at", y=metric, color="genre", markers=True,
-                            title=t("live_trend_title", period=period, metric=metric_label))
+                            title=t("live_trend_title", period=period, metric=metric_label),
+                            template=tpl)
             st.plotly_chart(fig8, width='stretch')
         else:
             st.info(t("live_not_enough"))

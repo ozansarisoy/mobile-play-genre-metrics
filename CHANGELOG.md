@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here.
 
+## [1.1.0] — 2026-08-29
+### Added
+- Light/Dark theme toggle (`theme.py`), placed next to the language selector. Own
+  session-controlled toggle rather than relying on Streamlit's native (Python-unreadable)
+  theme switch, so it can also drive the Plotly chart template — all 8 charts in the app
+  now render in `plotly_white` or `plotly_dark` to match the selected theme.
+- 2 new automated tests (`test_app_runs_with_dark_theme`, `test_plotly_template_mapping`);
+  suite is now 20 tests, all passing across every language x theme combination.
+
+### Known trade-off
+- The custom CSS is injected at runtime from within the app, not via
+  `.streamlit/config.toml` (which is static and can't offer a user-facing toggle). This
+  means there can be a brief flash of the default Streamlit chrome color on first paint
+  before the CSS applies; it does not recur on reruns within the same session.
+
 ## [1.0.0] — 2026-08-20
 ### Added
 - Initial data science pipeline on the Google Play Store Apps dataset (GAME category).
