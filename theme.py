@@ -110,7 +110,7 @@ h1, h2, h3, h4, h5, h6, p, label, span, div, li, a {
 
 def init_theme():
     if "theme" not in st.session_state:
-        st.session_state["theme"] = "light"
+        st.session_state["theme"] = "dark"
 
 
 def apply_theme(theme: str):

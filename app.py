@@ -18,7 +18,7 @@ st.set_page_config(page_title="Mobile Play Genre Metrics (MPGM)", layout="wide",
                     page_icon=os.path.join(APP_DIR, "assets", "favicon.png"))
 
 if "lang" not in st.session_state:
-    st.session_state["lang"] = "en"
+    st.session_state["lang"] = "tr"
 init_theme()
 
 lang_col, theme_col, _ = st.columns([1, 1, 4])
