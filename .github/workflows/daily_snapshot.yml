@@ -1,0 +1,35 @@
+name: Günlük Mobil Oyun Verisi Snapshot
+
+on:
+  schedule:
+    # Her gün 06:00 UTC (TR saatiyle yaz/kış 09:00-10:00 civarı) çalışır
+    - cron: "0 6 * * *"
+  workflow_dispatch: {}  # Manuel tetikleme için (Actions sekmesinden "Run workflow")
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Bağımlılıkları kur
+        run: pip install google-play-scraper
+
+      - name: Canlı veriyi çek ve snapshots.csv'ye ekle
+        run: python live_fetch.py
+
+      - name: Değişikliği commit'le
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/snapshots.csv
+          git diff --quiet --cached || git commit -m "Günlük veri snapshot: $(date -u +'%Y-%m-%d')"
+          git pull --rebase
+          git push
