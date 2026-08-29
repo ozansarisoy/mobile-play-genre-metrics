@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here.
 
+## [1.1.1] — 2026-08-29
+### Fixed
+- Light theme showed a broken, mismatched look: selectbox dropdowns and Plotly chart
+  backgrounds stayed dark even when "Light"/"Açık" was selected, with faded/washed-out
+  text. Root cause: the browser applies native dark styling to form controls based on
+  the page's `color-scheme` CSS property, which Streamlit sets from the OS/browser
+  preference by default — our own CSS painted the page background light but never told
+  the browser to also treat native controls (dropdowns, popovers) as light. Fixed by
+  explicitly setting `color-scheme: light` / `color-scheme: dark` on `<html>` per the
+  selected theme, and widened CSS coverage to selectbox/dropdown internals, dataframe
+  containers, and the Plotly chart wrapper background so every surface — not just the
+  page shell — follows the chosen theme consistently.
+- Verified across all 4 language x theme combinations with zero exceptions; 20/20 tests pass.
+
 ## [1.1.0] — 2026-08-29
 ### Added
 - Light/Dark theme toggle (`theme.py`), placed next to the language selector. Own
