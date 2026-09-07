@@ -428,3 +428,43 @@ def test_build_pdf_report_reports_font_failure_instead_of_failing_silently():
         pdf_bytes, font_ok = build_pdf_report("A", "B", table, "Test", lang="tr")
     assert font_ok is False
     assert isinstance(pdf_bytes, bytes) and pdf_bytes[:5] == b"%PDF-"  # still produces *a* PDF, just flagged
+
+
+def test_search_ranking_prefers_relevance_over_shortest_name():
+    """Regression test for the reported bug: searching a single letter like
+    'S' returned 'Rush' as the 'closest match' purely because it was the
+    shortest app name containing that letter — a nonsensical result with no
+    real relevance to the query. This confirms the new ranking (exact match >
+    starts-with > shortest-as-final-tiebreaker) picks a sensibly-related
+    top result instead."""
+    df = load_and_clean()
+    query = "sub"
+    q_lower = query.lower()
+    matches = df[df["App"].str.contains(query, case=False, na=False, regex=False)].copy()
+    app_lower = matches["App"].str.lower()
+    matches["_is_exact"] = (app_lower == q_lower)
+    matches["_starts_with"] = app_lower.str.startswith(q_lower)
+    matches["_name_len"] = matches["App"].str.len()
+    matches = matches.sort_values(
+        by=["_is_exact", "_starts_with", "_name_len", "App"],
+        ascending=[False, False, True, True],
+    )
+    top = matches.iloc[0]["App"]
+    assert top.lower().startswith(q_lower), (
+        f"Top search result '{top}' does not start with the query '{query}' — "
+        f"ranking is not prioritizing relevance"
+    )
+
+
+def test_app_search_single_character_is_rejected_not_matched():
+    """A 1-character query must show the 'too short' message rather than
+    silently picking an arbitrary 'closest' result."""
+    from streamlit.testing.v1 import AppTest
+
+    app_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "app.py")
+    at = AppTest.from_file(app_path)
+    at.run(timeout=90)
+    at.text_input(key="game_search").set_value("S").run(timeout=90)
+    assert len(at.exception) == 0
+    info_texts = " ".join(i.value for i in at.info)
+    assert "en az 2 karakter" in info_texts or "at least 2 characters" in info_texts

@@ -1,6 +1,6 @@
 [project]
 name = "mpgm-mobile-play-genre-metrics"
-version = "1.4.2"
+version = "1.4.4"
 description = "MPGM — Mobile Play Genre Metrics: a data-science dashboard analyzing and forecasting mobile game genre performance on Google Play, with live daily monitoring."
 readme = "README.md"
 requires-python = ">=3.10"

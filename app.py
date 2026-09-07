@@ -100,16 +100,34 @@ with tab1:
     with st.expander(f"🔎 {t('search_header')}", expanded=False):
         search_q = st.text_input(t("search_header"), placeholder=t("search_placeholder"),
                                   label_visibility="collapsed", key="game_search")
-        if search_q.strip():
-            matches = df[df["App"].str.contains(search_q.strip(), case=False, na=False, regex=False)]
+        query = search_q.strip()
+        if query and len(query) < 2:
+            st.info(t("search_too_short"))
+        elif query:
+            matches = df[df["App"].str.contains(query, case=False, na=False, regex=False)].copy()
             if matches.empty:
                 st.info(t("search_no_match"))
             else:
+                # Rank matches by actual relevance instead of picking the
+                # shortest name that happens to contain the query (which
+                # produced nonsensical results like "S" -> "Rush" — any
+                # short name containing the letter "s" would "win" purely
+                # by length, regardless of how unrelated it was to the
+                # search). Now: exact match first, then names starting
+                # with the query, then alphabetical, with length as the
+                # final tiebreaker only.
+                q_lower = query.lower()
+                app_lower = matches["App"].str.lower()
+                matches["_is_exact"] = (app_lower == q_lower)
+                matches["_starts_with"] = app_lower.str.startswith(q_lower)
+                matches["_name_len"] = matches["App"].str.len()
+                matches = matches.sort_values(
+                    by=["_is_exact", "_starts_with", "_name_len", "App"],
+                    ascending=[False, False, True, True],
+                ).drop(columns=["_is_exact", "_starts_with", "_name_len"])
+
                 if len(matches) > 1:
                     st.caption(t("search_multiple_matches"))
-                    matches = matches.reindex(
-                        matches["App"].str.len().sort_values().index
-                    )
                 game = matches.iloc[0]
                 genre_peers = df[df["Genre_Group"] == game["Genre_Group"]]
                 pct = (genre_peers["Popularity_Score"] < game["Popularity_Score"]).mean() * 100

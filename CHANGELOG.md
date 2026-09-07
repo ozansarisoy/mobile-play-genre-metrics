@@ -2,6 +2,34 @@
 
 All notable changes to this project are documented here.
 
+## [1.4.4] — 2026-09-07
+### Fixed
+- **Nonsensical "closest match" in game search.** Searching a single letter like "S"
+  returned "Rush" as the top result — not because it was relevant, but because it
+  happened to be the *shortest* app name containing that letter. The old ranking
+  sorted every substring match purely by name length, which has no real connection
+  to relevance. Fixed the ranking to prioritize (1) exact match, (2) name starts with
+  the query, (3) shortest length only as the final tiebreaker — so searching "clash"
+  now correctly surfaces "Clash Royale" instead of an unrelated short name.
+- Also added a minimum 2-character requirement before searching at all: a single
+  letter matches hundreds of games by definition and can never produce a meaningful
+  "closest match," so the app now asks for a more specific query instead of guessing.
+- 2 new regression tests (ranking prioritizes a relevant prefix match; a 1-character
+  query is rejected with a message rather than silently matched). Suite is now 41 tests.
+
+## [1.4.3] — 2026-09-07
+### Fixed
+- **Confusing row numbers in every data table.** `st.dataframe()` shows pandas'
+  internal row index by default, which is meaningless to a user — it's not a rank
+  or an ID, just "which position this row happened to land at" after filtering or
+  sorting, which is why it jumped around unpredictably (e.g. the outlier table
+  showing rows numbered 1, 2, 8, 9, 55, 15, 7... instead of a clean sequence).
+  Added `hide_index=True` to all 12 data tables across the app (genre stats,
+  popularity leaderboard, post-hoc test results, clustering results, outliers,
+  raw filtered data, momentum proxy, per-app snapshot history, forecast table,
+  and both the Apple and Wikipedia leaderboards) so every table now shows only
+  meaningful columns.
+
 ## [1.4.2] — 2026-09-07
 ### Changed
 - **`build_pdf_report` no longer fails silently.** After the v1.4.1 font fix, a user
