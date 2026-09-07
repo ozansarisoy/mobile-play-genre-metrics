@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here.
 
+## [1.4.5] — 2026-09-07
+### Changed
+- The "type at least 2 characters" search message now renders as `st.warning`
+  (amber/yellow) instead of `st.info` (blue) — it's a nudge to correct input, so it
+  should read visually as a warning, not neutral information. Confirmed the Turkish
+  translation ("Aramak için en az 2 karakter yaz...") was already correctly in place
+  from v1.4.4; this change is purely about the visual treatment. Verified with a real
+  browser screenshot.
+
 ## [1.4.4] — 2026-09-07
 ### Fixed
 - **Nonsensical "closest match" in game search.** Searching a single letter like "S"

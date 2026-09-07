@@ -102,7 +102,7 @@ with tab1:
                                   label_visibility="collapsed", key="game_search")
         query = search_q.strip()
         if query and len(query) < 2:
-            st.info(t("search_too_short"))
+            st.warning(t("search_too_short"))
         elif query:
             matches = df[df["App"].str.contains(query, case=False, na=False, regex=False)].copy()
             if matches.empty:

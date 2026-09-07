@@ -466,5 +466,5 @@ def test_app_search_single_character_is_rejected_not_matched():
     at.run(timeout=90)
     at.text_input(key="game_search").set_value("S").run(timeout=90)
     assert len(at.exception) == 0
-    info_texts = " ".join(i.value for i in at.info)
+    info_texts = " ".join(w.value for w in at.warning)
     assert "en az 2 karakter" in info_texts or "at least 2 characters" in info_texts
