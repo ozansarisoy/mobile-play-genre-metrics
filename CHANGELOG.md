@@ -2,6 +2,56 @@
 
 All notable changes to this project are documented here.
 
+## [1.4.0] — 2026-09-06
+### Added
+- **AI Analysis Simulation** in Genre Comparison Mode — after picking two genres, the
+  app now generates a multi-paragraph narrative report comparing them: per-metric
+  leader and percentage gap, the precomputed Mann-Whitney U + Bonferroni significance
+  test for that exact genre pair (reused from the Statistical Tests tab, not
+  recalculated), and an overall verdict. Implemented as a deterministic, rule-based
+  template generator (`ai_report.py`) rather than a live LLM API call — stated plainly
+  in the UI as a "simulation," since a real API call would need a paid key and would
+  break the project's fully-free architecture. Every number in the report is computed
+  from the same cleaned dataset used everywhere else in the app.
+- **Excel and PDF export** of the comparison report (same module) — one click each,
+  via `openpyxl` and `reportlab`. The Excel file has a data sheet and a report-text
+  sheet; the PDF renders the comparison table plus the full narrative with the app's
+  brand colors.
+- 6 new automated tests covering the resample-frequency fix, watchlist integrity, and
+  the full AI report pipeline (metrics, bilingual narrative, Excel/PDF byte validity).
+  Suite is now 35 tests.
+
+### Fixed
+- **Crash on "Monthly" or "Yearly" in Live Monitoring**: pandas removed the legacy `M`
+  and `Y` resample frequency aliases in the version now installed (`pandas>=2.2`
+  ships `ME`/`YE` instead), so clicking those two period options raised an unhandled
+  `ValueError` and broke the tab. Fixed by updating `freq_map` to `ME`/`YE`. Verified
+  with real accumulated live data across all four period options.
+- **Invisible ("white-on-white") text** in the genre stats table's column menu, the
+  clustering result table, and the CSV download button. Root cause: `theme.py`
+  previously painted a blanket text color onto every bare `h1..h6, p, label, span,
+  div, li, a` tag on the page. Several native Streamlit components — the dataframe
+  column-header menu, buttons, and Plotly's fullscreen overlay — render as portals
+  outside the normal app DOM subtree or already carry their own correct contrast
+  internally; the blanket rule forced our color onto them too, producing invisible
+  text on their own light background. Fixed by scoping all text-color rules to the
+  `.stApp` container (letting normal inheritance handle real descendants) and by
+  adding a proper Streamlit theme (`.streamlit/config.toml`) so dataframes, buttons,
+  popovers, and the fullscreen frame render with Streamlit's own guaranteed-correct
+  native contrast instead of fighting injected CSS. Stated trade-off: this config
+  file is static and matches the app's default (dark) theme — switching the in-app
+  toggle to Light still repaints the page shell and charts correctly, but these
+  specific native components keep their dark styling underneath, since Streamlit
+  doesn't support a user-facing, runtime-switchable native theme.
+- **Broken layout when expanding the Spearman correlation heatmap to fullscreen** —
+  same root cause as above (the blanket CSS rule reached into the fullscreen-cloned
+  DOM subtree); fixed by the same theme.py rewrite.
+- **Watchlist coverage**: `live_fetch.py`'s per-genre app list was thin (2–5 apps per
+  genre). Expanded to 2–8 apps per genre (64 total, no duplicates) for broader,
+  steadier daily coverage. New IDs are well-known public package names but were not
+  live-verified from this development environment (no Google Play access here) —
+  check the next Actions log for "HATA:" lines to confirm each resolves correctly.
+
 ## [1.3.0] — 2026-08-29
 ### Added
 - **Wikipedia Pageviews integration** (`live_fetch_wikipedia.py`) — a third, independent

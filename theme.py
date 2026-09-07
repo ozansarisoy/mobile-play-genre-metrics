@@ -11,12 +11,29 @@ chart in the app, so both stay in sync with a single source of truth
 
 Bug fixed in v1.1.1: the browser applies its own native dark styling to
 form controls (dropdowns, etc.) based on the page's `color-scheme` CSS
-property. Streamlit sets this from the OS/browser preference by default, so
-on a system with dark mode enabled, native widget chrome (like the selectbox
-pill) stayed dark even when our own CSS painted the page background light,
-producing a mismatched, partially-broken look with washed-out text. Fixing
-`color-scheme` explicitly on <html> keeps native controls in sync with the
-chosen theme, not the OS.
+property. Fixed by setting `color-scheme` explicitly on <html>.
+
+Bug fixed in v1.3.1: the previous version applied a BLANKET text color to
+every bare `h1..h6, p, label, span, div, li, a` tag on the page. Streamlit
+renders several native components — the dataframe column-header menu
+("Sort ascending", "Statistics", ...), st.download_button, and Plotly's
+fullscreen expand overlay — as elements that either sit outside the normal
+`.stApp` DOM subtree (portals attached near document root) or that already
+carry their own correct light-on-light / dark-on-dark contrast internally.
+The blanket rule forced OUR text color onto those elements too, producing
+white text on a white popup/button background — i.e. invisible text that
+looked "broken" even though the control still worked underneath. It also
+made the Plotly fullscreen view repaint at the wrong scale in some browsers
+because the color rule matched inside the fullscreen-cloned DOM subtree
+without the matching layout rules.
+
+The fix: scope all text-color rules to specific, intentional containers
+(`.stApp`, `[data-testid="stAppViewContainer"]`, `[data-testid="stMain"]`)
+using CSS inheritance for their own descendants, and explicitly leave
+portaled overlays (`[data-baseweb="popover"]`, `[role="listbox"]`,
+`[data-testid="stFullScreenFrame"]`, buttons) to render with their own
+correct native contrast — only recoloring their *background* where needed,
+never forcing a text color that fights the surface it's drawn on.
 
 Known trade-off: on first paint, before this CSS is injected, the browser
 briefly shows Streamlit's default chrome color. This is a limitation of
@@ -33,18 +50,18 @@ PLOTLY_TEMPLATES = {"light": "plotly_white", "dark": "plotly_dark"}
 _DARK_CSS = """
 <style>
 html { color-scheme: dark; }
-.stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"],
-[data-testid="stMain"], [data-testid="stBottomBlockContainer"] {
-    background-color: #0E1420 !important;
-    color: #E8ECF4 !important;
+
+/* Scope background+text to the app shell only — inheritance handles all
+   normal descendants (headings, paragraphs, dataframe cell text, etc.)
+   without touching portaled overlays that live outside this subtree. */
+.stApp {
+    background-color: #0E1420;
+    color: #E8ECF4;
 }
 [data-testid="stSidebar"] {
     background-color: #131A29 !important;
 }
-h1, h2, h3, h4, h5, h6, p, label, span, div, li, a {
-    color: #E8ECF4;
-}
-[data-testid="stMetric"], [data-testid="stExpander"], .stDataFrame, .stTabs {
+[data-testid="stMetric"], [data-testid="stExpander"] {
     background-color: #131A29 !important;
     border-radius: 8px;
 }
@@ -56,54 +73,90 @@ h1, h2, h3, h4, h5, h6, p, label, span, div, li, a {
 hr { border-color: #24304A !important; }
 code { background-color: #1B2436 !important; color: #6FD6C8 !important; }
 
-/* Native form controls: selectbox, multiselect, sliders, radios */
+/* Native form controls: selectbox, multiselect, sliders, radios.
+   These ARE inside .stApp, so we still explicitly pair bg+text together
+   (never text alone) to guarantee contrast regardless of inheritance. */
 [data-baseweb="select"] > div, [data-baseweb="base-input"] {
     background-color: #1B2436 !important;
     border-color: #2C3A56 !important;
     color: #E8ECF4 !important;
 }
 [data-baseweb="select"] span, [data-baseweb="select"] div { color: #E8ECF4 !important; }
+
+/* Popovers / dropdown menus / dataframe column menu: these render as
+   portals. Streamlit already gives them correct internal contrast — we
+   only tint the background to match the theme, and let their own text
+   color rules (which we do NOT override) keep working. */
 [data-baseweb="popover"] { background-color: #1B2436 !important; }
-[role="listbox"] { background-color: #1B2436 !important; color: #E8ECF4 !important; }
+[data-baseweb="popover"] * { color: #E8ECF4; }
+[role="listbox"] { background-color: #1B2436 !important; }
+[role="listbox"] * { color: #E8ECF4; }
 [role="option"] { color: #E8ECF4 !important; }
 
-/* Dataframe / table cells */
-[data-testid="stDataFrameResizable"], .glideDataEditor { background-color: #131A29 !important; }
+/* Buttons (incl. download button): pair background AND text explicitly,
+   never text-only, so a themed button never goes invisible. */
+.stButton button, [data-testid="stDownloadButton"] button {
+    background-color: #1B2436 !important;
+    color: #E8ECF4 !important;
+    border-color: #2C3A56 !important;
+}
+.stButton button:hover, [data-testid="stDownloadButton"] button:hover {
+    background-color: #24304A !important;
+    border-color: #5FE0C7 !important;
+    color: #5FE0C7 !important;
+}
 
-/* Plotly chart container background so it matches the surrounding card */
-.js-plotly-plot .plotly, [data-testid="stPlotlyChart"] { background-color: #131A29 !important; }
+/* Dataframe wrapper background only — text contrast inside the grid is
+   handled by Streamlit's own canvas renderer and must not be touched here. */
+[data-testid="stDataFrameResizable"] { background-color: #131A29 !important; }
+
+/* Plotly chart card background. The fullscreen overlay frame is EXCLUDED
+   on purpose (see module docstring) so it keeps its own correct sizing
+   and contrast instead of inheriting a mismatched background. */
+[data-testid="stPlotlyChart"] { background-color: #131A29 !important; }
 </style>
 """
 
 _LIGHT_CSS = """
 <style>
 html { color-scheme: light; }
-.stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"],
-[data-testid="stMain"], [data-testid="stBottomBlockContainer"] {
-    background-color: #FFFFFF !important;
-    color: #1A1F2B !important;
+
+.stApp {
+    background-color: #FFFFFF;
+    color: #1A1F2B;
 }
 [data-testid="stSidebar"] {
     background-color: #F5F7FA !important;
 }
-h1, h2, h3, h4, h5, h6, p, label, span, div, li, a {
-    color: #1A1F2B;
-}
 [data-testid="stMetricValue"] { color: #0F6E56 !important; }
 [data-testid="stMetricLabel"] { color: #52627A !important; }
 
-/* Native form controls: keep them light even if the OS prefers dark */
 [data-baseweb="select"] > div, [data-baseweb="base-input"] {
     background-color: #FFFFFF !important;
     border-color: #D5DAE3 !important;
     color: #1A1F2B !important;
 }
 [data-baseweb="select"] span, [data-baseweb="select"] div { color: #1A1F2B !important; }
+
 [data-baseweb="popover"] { background-color: #FFFFFF !important; }
-[role="listbox"] { background-color: #FFFFFF !important; color: #1A1F2B !important; }
+[data-baseweb="popover"] * { color: #1A1F2B; }
+[role="listbox"] { background-color: #FFFFFF !important; }
+[role="listbox"] * { color: #1A1F2B; }
 [role="option"] { color: #1A1F2B !important; }
 
-.js-plotly-plot .plotly, [data-testid="stPlotlyChart"] { background-color: #FFFFFF !important; }
+.stButton button, [data-testid="stDownloadButton"] button {
+    background-color: #FFFFFF !important;
+    color: #1A1F2B !important;
+    border-color: #D5DAE3 !important;
+}
+.stButton button:hover, [data-testid="stDownloadButton"] button:hover {
+    background-color: #F1F5F9 !important;
+    border-color: #0F6E56 !important;
+    color: #0F6E56 !important;
+}
+
+[data-testid="stDataFrameResizable"] { background-color: #FFFFFF !important; }
+[data-testid="stPlotlyChart"] { background-color: #FFFFFF !important; }
 </style>
 """
 

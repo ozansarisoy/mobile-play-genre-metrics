@@ -27,25 +27,38 @@ from google_play_scraper import app as gp_app
 SNAPSHOT_PATH = os.path.join(os.path.dirname(__file__), "data", "snapshots.csv")
 
 # Tür -> temsilci uygulama package id'leri (Google Play "app id")
+# Not: Bu liste v1.3.1'de genişletildi. Yeni eklenen ID'ler herkese açık,
+# bilinen uygulamaların paket adlarıdır ancak bu ortamdan canlı doğrulanamadı
+# (Google Play erişimi bu sandbox'ta kısıtlı) — ilk gerçek çalıştırmada
+# GitHub Actions log'unda "HATA:" satırı var mı kontrol edin; hatalı bir ID
+# sessizce atlanır, diğerlerini etkilemez.
 WATCHLIST = {
     "Action": ["com.pubg.imobile", "com.miHoYo.GenshinImpact", "com.dts.freefireth",
-               "com.activision.callofduty.shooter", "com.epicgames.fortnite"],
+               "com.activision.callofduty.shooter", "com.epicgames.fortnite",
+               "com.tencent.ig", "com.supercell.brawlstars", "com.dts.freefiremax"],
     "Arcade": ["com.king.candycrushsaga", "com.rovio.angrybirds", "air.com.hypah.io.slither",
-               "com.halfbrick.fruitninjafree", "com.ketchapp.stack"],
+               "com.halfbrick.fruitninjafree", "com.ketchapp.stack",
+               "com.halfbrick.jetpackjoyride", "com.imangi.templerun2", "com.kiloo.subwaysurf"],
     "Racing": ["com.ea.gp.needforspeedmostwanted", "com.gameloft.android.ANMP.GloftA9HM",
-               "com.miniclip.eightballpool", "com.hutchgames.hillclimb"],
-    "Adventure": ["com.mojang.minecraftpe", "com.roblox.client", "com.innersloth.spacemafia"],
-    "Puzzle": ["com.king.candycrushsodasaga", "com.easybrain.sudoku.android", "com.gramgames.mergedragons"],
-    "Casual": ["com.supercell.hayday", "com.zynga.toonblast", "com.playrix.homescapes"],
-    "Strategy": ["com.supercell.clashofclans", "com.supercell.clashroyale", "com.nexonm.dominations"],
-    "Card": ["com.mobilityware.solitaire", "com.zynga.poker"],
-    "Casino": ["com.productmadness.hoc", "com.slotomania.slots"],
-    "Role Playing": ["com.garena.game.codm", "net.wooga.june"],
-    "Simulation": ["com.ea.games.simsfreeplay_row", "com.tastypill.idlefactory"],
+               "com.miniclip.eightballpool", "com.hutchgames.hillclimb",
+               "com.gameloft.android.ANMP.GloftA8HM", "com.ea.game.realracing3_row"],
+    "Adventure": ["com.mojang.minecraftpe", "com.roblox.client", "com.innersloth.spacemafia",
+                  "com.pgs.granny"],
+    "Puzzle": ["com.king.candycrushsodasaga", "com.easybrain.sudoku.android", "com.gramgames.mergedragons",
+               "com.easybrain.block.puzzle.games"],
+    "Casual": ["com.supercell.hayday", "com.zynga.toonblast", "com.playrix.homescapes",
+               "com.voodoo.holeio", "com.playrix.township"],
+    "Strategy": ["com.supercell.clashofclans", "com.supercell.clashroyale", "com.nexonm.dominations",
+                 "com.igg.android.lordsmobile", "com.supercell.boombeach"],
+    "Card": ["com.mobilityware.solitaire", "com.zynga.poker", "com.mobilityware.spidersolitaire"],
+    "Casino": ["com.productmadness.hoc", "com.slotomania.slots", "com.doubledown.casino"],
+    "Role Playing": ["com.garena.game.codm", "net.wooga.june", "com.miHoYo.hkrpg"],
+    "Simulation": ["com.ea.games.simsfreeplay_row", "com.tastypill.idlefactory",
+                   "com.outfit7.mytalkingtom2"],
     "Sports": ["com.ea.gp.fifamobile", "com.dreamgames.trainstation2"],
     "Board": ["com.king.farmheroessaga", "com.electronicarts.monopoly"],
-    "Trivia": ["com.scopely.wheeloffortune", "com.smgmobile.trivia"],
-    "Word": ["com.zynga.words", "com.pyxelperfect.wordconnect"],
+    "Trivia": ["com.scopely.wheeloffortune", "com.smgmobile.trivia", "com.etermax.preguntados.lite"],
+    "Word": ["com.zynga.words", "com.pyxelperfect.wordconnect", "com.zynga.wordswithfriends2"],
     "Music": ["com.miniclip.crazykart", "com.beatstar.game"],
 }
 

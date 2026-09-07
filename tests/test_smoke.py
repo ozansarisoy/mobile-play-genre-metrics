@@ -294,3 +294,70 @@ def test_wikipedia_fetch_never_raises_on_network_failure():
     with mock.patch("urllib.request.urlopen", side_effect=Exception("timeout")):
         row = _fetch_article_views("Puzzle", "Puzzle_video_game", "20260101", "2026-01-01T00:00:00+00:00")
     assert row is None
+
+
+def test_resample_frequency_aliases_are_valid_for_current_pandas():
+    """Regression test for the v1.3.1 bug: 'M' and 'Y' resample aliases were
+    removed in modern pandas, crashing the app when a user picked Monthly or
+    Yearly in the Live Monitoring tab. Confirms the app's freq_map values
+    ('D', 'W', 'ME', 'YE') all resample without raising."""
+    snaps = pd.DataFrame({
+        "fetched_at": pd.to_datetime(["2026-01-01", "2026-01-08", "2026-02-01", "2027-01-01"]),
+        "genre": ["Action"] * 4,
+        "score": [4.1, 4.2, 4.3, 4.4],
+    })
+    for freq in ["D", "W", "ME", "YE"]:
+        trend = snaps.set_index("fetched_at").groupby("genre")["score"].resample(freq).mean().reset_index()
+        assert len(trend) > 0
+
+
+def test_watchlist_has_no_duplicate_app_ids():
+    from live_fetch import WATCHLIST
+    all_ids = [app_id for ids in WATCHLIST.values() for app_id in ids]
+    assert len(all_ids) == len(set(all_ids)), "Duplicate app IDs found across genres in WATCHLIST"
+    assert len(all_ids) >= 40  # expanded watchlist should have meaningfully more coverage than before
+
+
+def test_compute_comparison_metrics():
+    from ai_report import compute_comparison_metrics
+    df_a = pd.DataFrame({
+        "Rating_num": [4.0, 4.5], "Installs_num": [1000, 2000], "Reviews_num": [10, 20],
+        "Size_MB": [10.0, 20.0], "Price_num": [0.0, 0.0], "Popularity_Score": [0.1, 0.2],
+    })
+    df_b = df_a.copy()
+    result = compute_comparison_metrics(df_a, df_b)
+    assert result["a"]["n"] == 2
+    assert result["a"]["avg_rating"] == pytest.approx(4.25)
+
+
+def test_generate_comparison_narrative_bilingual():
+    from ai_report import compute_comparison_metrics, generate_comparison_narrative
+    df_a = pd.DataFrame({
+        "Rating_num": [4.0, 4.5], "Installs_num": [1000, 2000], "Reviews_num": [10, 20],
+        "Size_MB": [10.0, 20.0], "Price_num": [0.0, 0.0], "Popularity_Score": [0.1, 0.2],
+    })
+    df_b = pd.DataFrame({
+        "Rating_num": [3.0, 3.5], "Installs_num": [500, 800], "Reviews_num": [5, 8],
+        "Size_MB": [15.0, 25.0], "Price_num": [0.0, 0.0], "Popularity_Score": [-0.1, -0.2],
+    })
+    metrics = compute_comparison_metrics(df_a, df_b)
+    for lang in ("en", "tr"):
+        narrative = generate_comparison_narrative("A", "B", "A", "B", metrics, None, lang=lang)
+        assert isinstance(narrative, str) and len(narrative) > 100
+        assert "simulation" in narrative.lower() or "simülasyon" in narrative.lower()
+
+
+def test_build_excel_report_produces_valid_bytes():
+    from ai_report import build_excel_report
+    table = pd.DataFrame({"Metric": ["Rating"], "A": ["4.2"], "B": ["4.5"]})
+    result = build_excel_report("A", "B", table, "## Test narrative\n- point one", lang="en")
+    assert isinstance(result, bytes) and len(result) > 100
+    assert result[:2] == b"PK"  # xlsx is a zip archive
+
+
+def test_build_pdf_report_produces_valid_bytes():
+    from ai_report import build_pdf_report
+    table = pd.DataFrame({"Metric": ["Rating"], "A": ["4.2"], "B": ["4.5"]})
+    result = build_pdf_report("A", "B", table, "## Test narrative\n- point one\n*disclaimer*", lang="en")
+    assert isinstance(result, bytes) and len(result) > 100
+    assert result[:5] == b"%PDF-"

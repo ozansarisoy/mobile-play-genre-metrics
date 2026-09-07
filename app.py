@@ -11,6 +11,7 @@ from analysis import (
 )
 from i18n import get_translator, translate_columns, translate_values, VALUE_LABELS
 from theme import init_theme, apply_theme, plotly_template, THEME_LABELS
+from ai_report import compute_comparison_metrics, generate_comparison_narrative, build_excel_report, build_pdf_report
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -208,7 +209,37 @@ with tab2:
                 label_a: format(val_a, fmt) if pd.notna(val_a) else "—",
                 label_b: format(val_b, fmt) if pd.notna(val_b) else "—",
             })
-        st.dataframe(pd.DataFrame(rows), width='stretch', hide_index=True)
+        comparison_table = pd.DataFrame(rows)
+        st.dataframe(comparison_table, width='stretch', hide_index=True)
+
+        st.markdown(f"#### 🤖 {t('ai_sim_header')}")
+        st.caption(t("ai_sim_disclaimer"))
+        with st.spinner(t("ai_sim_generating")):
+            posthoc_all = dunn_posthoc(df)
+            comp_metrics_raw = compute_comparison_metrics(df_a, df_b)
+            narrative = generate_comparison_narrative(
+                genre_a, genre_b, label_a, label_b, comp_metrics_raw, posthoc_all, lang=lang
+            )
+        st.markdown(narrative)
+
+        st.markdown(f"#### {t('ai_sim_export_header')}")
+        exp_col1, exp_col2 = st.columns(2)
+        with exp_col1:
+            excel_bytes = build_excel_report(label_a, label_b, comparison_table, narrative, lang=lang)
+            st.download_button(
+                t("ai_sim_download_excel"), excel_bytes,
+                f"MPGM_{label_a}_vs_{label_b}.xlsx".replace(" ", "_"),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="dl_excel_compare",
+            )
+        with exp_col2:
+            pdf_bytes = build_pdf_report(label_a, label_b, comparison_table, narrative, lang=lang)
+            st.download_button(
+                t("ai_sim_download_pdf"), pdf_bytes,
+                f"MPGM_{label_a}_vs_{label_b}.pdf".replace(" ", "_"),
+                "application/pdf",
+                key="dl_pdf_compare",
+            )
     else:
         st.info(t("compare_no_selection"))
 
@@ -337,7 +368,7 @@ with tab6:
         period = st.radio(t("live_period"), period_options, horizontal=True)
         freq_map = {
             t("live_period_daily"): "D", t("live_period_weekly"): "W",
-            t("live_period_monthly"): "M", t("live_period_yearly"): "Y",
+            t("live_period_monthly"): "ME", t("live_period_yearly"): "YE",
         }
         metric_options = {
             t("live_metric_score"): "score", t("live_metric_reviews"): "reviews",

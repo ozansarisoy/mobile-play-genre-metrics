@@ -1,0 +1,25 @@
+# MPGM's actual Streamlit theme — this is the authoritative source Streamlit
+# uses to color its NATIVE components (dataframe grid, buttons, popovers/menus,
+# the fullscreen chart overlay). Our own runtime CSS toggle in theme.py can
+# repaint the page shell and switch Plotly's chart template, but it cannot
+# reach inside these native, canvas- or portal-rendered components — only a
+# real Streamlit theme can. Setting this fixed this class of bug (white text
+# in the dataframe column menu, invisible download-button label, a broken
+# fullscreen correlation heatmap) because those components now render with
+# Streamlit's own guaranteed-correct contrast instead of fighting our CSS.
+#
+# Trade-off, stated plainly: this file is static, so it matches our app's
+# DEFAULT theme (dark). When a user switches the in-app toggle to Light, the
+# page shell and charts repaint correctly, but these specific native
+# components (dataframe grid, buttons, popover menus, fullscreen frame) keep
+# following this dark config, since Streamlit doesn't support a user-facing,
+# runtime-switchable native theme. This is a deliberate choice: fixing the
+# default (and most-used) state correctly beats a CSS hack that half-fixes
+# both directions.
+[theme]
+base = "dark"
+primaryColor = "#5FE0C7"
+backgroundColor = "#0E1420"
+secondaryBackgroundColor = "#131A29"
+textColor = "#E8ECF4"
+font = "sans serif"
