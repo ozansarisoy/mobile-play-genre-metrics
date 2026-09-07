@@ -217,20 +217,45 @@ def build_excel_report(label_a: str, label_b: str, comparison_table: pd.DataFram
 
 def build_pdf_report(label_a: str, label_b: str, comparison_table: pd.DataFrame,
                       narrative: str, lang: str = "en") -> bytes:
+    import os
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import cm
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+
+    # Register a bundled Unicode font (DejaVu Sans) so Turkish characters
+    # (ş, ı, ğ, ü, ö, ç, İ, Ğ, Ş, Ö, Ç, Ü) render correctly. ReportLab's
+    # built-in fonts (Helvetica etc.) only cover Latin-1 and silently
+    # replace unsupported characters with "■", which is what happened
+    # before this fix. The font is bundled in assets/fonts/ so this works
+    # identically on any deployment (Streamlit Cloud's server has no
+    # guarantee of any particular system font being installed).
+    FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "fonts")
+    font_regular = "Helvetica"
+    font_bold = "Helvetica-Bold"
+    font_italic = "Helvetica-Oblique"
+    try:
+        pdfmetrics.registerFont(TTFont("DejaVu", os.path.join(FONT_DIR, "DejaVuSans.ttf")))
+        pdfmetrics.registerFont(TTFont("DejaVu-Bold", os.path.join(FONT_DIR, "DejaVuSans-Bold.ttf")))
+        pdfmetrics.registerFont(TTFont("DejaVu-Oblique", os.path.join(FONT_DIR, "DejaVuSans-Oblique.ttf")))
+        font_regular, font_bold, font_italic = "DejaVu", "DejaVu-Bold", "DejaVu-Oblique"
+    except Exception:
+        pass  # Falls back to Helvetica (Latin-1 only) if the bundled font is missing for any reason.
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=1.5 * cm, bottomMargin=1.5 * cm,
                              leftMargin=1.7 * cm, rightMargin=1.7 * cm)
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle("TitleMPGM", parent=styles["Title"], textColor=colors.HexColor("#0F6E56"))
-    body_style = ParagraphStyle("BodyMPGM", parent=styles["BodyText"], fontSize=10, leading=14,
-                                 spaceAfter=6)
-    h2_style = ParagraphStyle("H2MPGM", parent=styles["Heading2"], textColor=colors.HexColor("#0F6E56"))
+    title_style = ParagraphStyle("TitleMPGM", parent=styles["Title"], fontName=font_bold,
+                                  textColor=colors.HexColor("#0F6E56"))
+    body_style = ParagraphStyle("BodyMPGM", parent=styles["BodyText"], fontName=font_regular,
+                                 fontSize=10, leading=14, spaceAfter=6)
+    body_italic_style = ParagraphStyle("BodyItalicMPGM", parent=body_style, fontName=font_italic)
+    h2_style = ParagraphStyle("H2MPGM", parent=styles["Heading2"], fontName=font_bold,
+                               textColor=colors.HexColor("#0F6E56"))
 
     title = f"MPGM — {label_a} vs {label_b}" if lang == "en" else f"MPGM — {label_a} vs {label_b} Karşılaştırma Raporu"
     story = [Paragraph(title, title_style), Spacer(1, 0.4 * cm)]
@@ -246,7 +271,8 @@ def build_pdf_report(label_a: str, label_b: str, comparison_table: pd.DataFrame,
     tbl.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#5FE0C7")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#0B1220")),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTNAME", (0, 0), (-1, 0), font_bold),
+        ("FONTNAME", (0, 1), (-1, -1), font_regular),
         ("FONTSIZE", (0, 0), (-1, -1), 9),
         ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F1F5F9")]),
@@ -268,9 +294,6 @@ def build_pdf_report(label_a: str, label_b: str, comparison_table: pd.DataFrame,
         elif line.startswith("### "):
             story.append(Paragraph(f"<b>{line[4:]}</b>", body_style))
         elif line.startswith("- "):
-            clean = line[2:].replace("**", "<b>", 1)
-            if clean.count("**") == 0 and "<b>" in clean:
-                clean = clean + "</b>" if False else clean
             clean = line[2:]
             # bold **text** -> <b>text</b>
             parts = clean.split("**")
@@ -279,7 +302,7 @@ def build_pdf_report(label_a: str, label_b: str, comparison_table: pd.DataFrame,
                 rendered += f"<b>{part}</b>" if i % 2 == 1 else part
             story.append(Paragraph(f"• {rendered}", body_style))
         elif line.startswith("*") and line.endswith("*"):
-            story.append(Paragraph(f"<i>{line.strip('*')}</i>", body_style))
+            story.append(Paragraph(line.strip("*"), body_italic_style))
         else:
             parts = line.split("**")
             rendered = ""

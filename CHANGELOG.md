@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented here.
 
+## [1.4.1] — 2026-09-07
+### Fixed
+- **Garbled Turkish characters in the PDF comparison report** (`■` in place of ş, ı,
+  ğ, ü, ö, ç, İ, Ğ, Ş, Ö, Ç, Ü). Root cause: ReportLab's built-in fonts (Helvetica
+  etc.) only cover Latin-1 and silently replace unsupported characters. Fixed by
+  bundling a Unicode TTF font (DejaVu Sans, `assets/fonts/`) directly in the repo and
+  registering it with ReportLab at PDF build time — bundled rather than relying on a
+  system font, since Streamlit Cloud's server has no guarantee of any particular font
+  being pre-installed. Verified by extracting the actual PDF text and confirming every
+  Turkish character survives intact (new regression test).
+- Confirmed the **Excel export was already correct** — `openpyxl` writes UTF-8
+  natively, so no fix was needed there; verified with a round-trip read-back test.
+
+### Added
+- **Both-language export, regardless of current UI language.** Previously the
+  Genre Comparison report only exported in whichever language the interface was
+  currently set to. Since a report is often shared with someone who reads the other
+  language, both Excel and PDF are now always offered in both English and Turkish —
+  four download buttons total, with the current UI language shown first.
+- 3 new automated tests: bundled-font presence, PDF Turkish-character round-trip via
+  `pdfplumber` text extraction, and both-language narrative generation. Suite is now
+  38 tests.
+
 ## [1.4.0] — 2026-09-06
 ### Added
 - **AI Analysis Simulation** in Genre Comparison Mode — after picking two genres, the

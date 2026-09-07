@@ -8,6 +8,7 @@ mismatched columns) automatically, before they reach a deployed app.
 """
 import os
 import sys
+import io
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -361,3 +362,50 @@ def test_build_pdf_report_produces_valid_bytes():
     result = build_pdf_report("A", "B", table, "## Test narrative\n- point one\n*disclaimer*", lang="en")
     assert isinstance(result, bytes) and len(result) > 100
     assert result[:5] == b"%PDF-"
+
+
+def test_pdf_report_bundled_font_exists():
+    """The PDF Turkish-character fix depends on a bundled TTF font shipping
+    with the repo (Streamlit Cloud's server has no guaranteed system fonts)."""
+    font_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                             "assets", "fonts")
+    assert os.path.exists(os.path.join(font_dir, "DejaVuSans.ttf"))
+    assert os.path.exists(os.path.join(font_dir, "DejaVuSans-Bold.ttf"))
+
+
+def test_pdf_report_renders_turkish_characters_correctly():
+    """Regression test for the v1.4.1 bug: Turkish characters (ş, ı, ğ, ü,
+    ö, ç, İ) rendered as '■' in the PDF export because ReportLab's default
+    Helvetica font only covers Latin-1. Extracts the actual PDF text and
+    checks the Turkish characters survive intact."""
+    import pdfplumber
+    from ai_report import build_pdf_report
+
+    table = pd.DataFrame({"Metrik": ["Puan"], "A": ["4.2"], "B": ["4.5"]})
+    narrative = "Türkçe karakter testi: şımärşĞÜÖÇİ öğüşçı — Karşılaştırma sonuçları"
+    pdf_bytes = build_pdf_report("A", "B", table, narrative, lang="tr")
+
+    with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
+        text = pdf.pages[0].extract_text()
+
+    assert "■" not in text, "PDF still contains the mojibake replacement character"
+    for ch in "şığüöçİĞÜÖÇ":
+        assert ch in text, f"Turkish character '{ch}' did not survive PDF export"
+
+
+def test_ai_report_provides_both_languages_regardless_of_ui_language():
+    """The app must always offer both EN and TR exports, not just whatever
+    language the interface is currently set to."""
+    from ai_report import compute_comparison_metrics, generate_comparison_narrative
+
+    df_a = pd.DataFrame({
+        "Rating_num": [4.0], "Installs_num": [1000], "Reviews_num": [10],
+        "Size_MB": [10.0], "Price_num": [0.0], "Popularity_Score": [0.1],
+    })
+    df_b = df_a.copy()
+    metrics = compute_comparison_metrics(df_a, df_b)
+    en_report = generate_comparison_narrative("A", "B", "A", "B", metrics, None, lang="en")
+    tr_report = generate_comparison_narrative("A", "B", "A", "B", metrics, None, lang="tr")
+    assert en_report != tr_report
+    assert "simulation" in en_report.lower()
+    assert "simülasyon" in tr_report.lower()

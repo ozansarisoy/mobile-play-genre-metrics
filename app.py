@@ -193,23 +193,35 @@ with tab2:
         label_a = genre_label_map.get(genre_a, genre_a)
         label_b = genre_label_map.get(genre_b, genre_b)
 
-        cmp_metrics = {
-            "Rating" if lang == "en" else "Puan": ("Rating_num", "mean", ".2f"),
-            "Installs" if lang == "en" else "Kurulum": ("Installs_num", "median", ",.0f"),
-            "Reviews" if lang == "en" else "Yorum": ("Reviews_num", "mean", ",.0f"),
-            "Size (MB)" if lang == "en" else "Boyut (MB)": ("Size_MB", "mean", ".1f"),
-            "Popularity" if lang == "en" else "Popülerlik": ("Popularity_Score", "mean", ".2f"),
+        cmp_metrics_en = {
+            "Rating": ("Rating_num", "mean", ".2f"),
+            "Installs": ("Installs_num", "median", ",.0f"),
+            "Reviews": ("Reviews_num", "mean", ",.0f"),
+            "Size (MB)": ("Size_MB", "mean", ".1f"),
+            "Popularity": ("Popularity_Score", "mean", ".2f"),
         }
-        rows = []
-        for label, (col, agg, fmt) in cmp_metrics.items():
-            val_a = getattr(df_a[col], agg)()
-            val_b = getattr(df_b[col], agg)()
-            rows.append({
-                ("Metric" if lang == "en" else "Metrik"): label,
-                label_a: format(val_a, fmt) if pd.notna(val_a) else "—",
-                label_b: format(val_b, fmt) if pd.notna(val_b) else "—",
-            })
-        comparison_table = pd.DataFrame(rows)
+        cmp_metrics_tr = {
+            "Puan": ("Rating_num", "mean", ".2f"),
+            "Kurulum": ("Installs_num", "median", ",.0f"),
+            "Yorum": ("Reviews_num", "mean", ",.0f"),
+            "Boyut (MB)": ("Size_MB", "mean", ".1f"),
+            "Popülerlik": ("Popularity_Score", "mean", ".2f"),
+        }
+
+        def build_table(metric_map, metric_col_label):
+            rows = []
+            for label, (col, agg, fmt) in metric_map.items():
+                val_a = getattr(df_a[col], agg)()
+                val_b = getattr(df_b[col], agg)()
+                rows.append({
+                    metric_col_label: label,
+                    label_a: format(val_a, fmt) if pd.notna(val_a) else "—",
+                    label_b: format(val_b, fmt) if pd.notna(val_b) else "—",
+                })
+            return pd.DataFrame(rows)
+
+        comparison_table = build_table(cmp_metrics_en if lang == "en" else cmp_metrics_tr,
+                                        "Metric" if lang == "en" else "Metrik")
         st.dataframe(comparison_table, width='stretch', hide_index=True)
 
         st.markdown(f"#### 🤖 {t('ai_sim_header')}")
@@ -222,23 +234,53 @@ with tab2:
             )
         st.markdown(narrative)
 
+        # Reports are always offered in BOTH languages regardless of the
+        # current UI language, since a report is often shared with someone
+        # who reads the other language — not everyone using the Turkish UI
+        # necessarily wants a Turkish-only export, and vice versa.
+        other_lang = "tr" if lang == "en" else "en"
+        other_table = build_table(cmp_metrics_tr if other_lang == "tr" else cmp_metrics_en,
+                                   "Metrik" if other_lang == "tr" else "Metric")
+        other_narrative = generate_comparison_narrative(
+            genre_a, genre_b, label_a, label_b, comp_metrics_raw, posthoc_all, lang=other_lang
+        )
+
         st.markdown(f"#### {t('ai_sim_export_header')}")
+        lang_file_tag = {"en": "EN", "tr": "TR"}
         exp_col1, exp_col2 = st.columns(2)
         with exp_col1:
+            st.caption(t("ai_sim_current_lang"))
             excel_bytes = build_excel_report(label_a, label_b, comparison_table, narrative, lang=lang)
             st.download_button(
                 t("ai_sim_download_excel"), excel_bytes,
-                f"MPGM_{label_a}_vs_{label_b}.xlsx".replace(" ", "_"),
+                f"MPGM_{label_a}_vs_{label_b}_{lang_file_tag[lang]}.xlsx".replace(" ", "_"),
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 key="dl_excel_compare",
             )
-        with exp_col2:
             pdf_bytes = build_pdf_report(label_a, label_b, comparison_table, narrative, lang=lang)
             st.download_button(
                 t("ai_sim_download_pdf"), pdf_bytes,
-                f"MPGM_{label_a}_vs_{label_b}.pdf".replace(" ", "_"),
+                f"MPGM_{label_a}_vs_{label_b}_{lang_file_tag[lang]}.pdf".replace(" ", "_"),
                 "application/pdf",
                 key="dl_pdf_compare",
+            )
+        with exp_col2:
+            st.caption(t("ai_sim_other_lang"))
+            excel_bytes_other = build_excel_report(label_a, label_b, other_table, other_narrative, lang=other_lang)
+            st.download_button(
+                "📊 Download as Excel" if other_lang == "en" else "📊 Excel olarak indir",
+                excel_bytes_other,
+                f"MPGM_{label_a}_vs_{label_b}_{lang_file_tag[other_lang]}.xlsx".replace(" ", "_"),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key="dl_excel_compare_other",
+            )
+            pdf_bytes_other = build_pdf_report(label_a, label_b, other_table, other_narrative, lang=other_lang)
+            st.download_button(
+                "📄 Download as PDF" if other_lang == "en" else "📄 PDF olarak indir",
+                pdf_bytes_other,
+                f"MPGM_{label_a}_vs_{label_b}_{lang_file_tag[other_lang]}.pdf".replace(" ", "_"),
+                "application/pdf",
+                key="dl_pdf_compare_other",
             )
     else:
         st.info(t("compare_no_selection"))
