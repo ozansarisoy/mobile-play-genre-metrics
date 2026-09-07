@@ -157,7 +157,7 @@ with tab1:
 with tab2:
     st.markdown(t("genre_stats_header"))
     stats_df = genre_descriptive_stats(df)
-    st.dataframe(translate_columns(translate_values(stats_df.reset_index(), lang), lang), width='stretch')
+    st.dataframe(translate_columns(translate_values(stats_df.reset_index(), lang), lang), width='stretch', hide_index=True)
     st.markdown(t("genre_stats_note"))
 
     st.markdown(t("popularity_header"))
@@ -166,7 +166,7 @@ with tab2:
     top_games = df.nlargest(top_n, "Popularity_Score")[
         ["App", "Genre_Group", "Rating_num", "Installs_num", "Reviews_num", "Popularity_Score"]
     ].round(2)
-    st.dataframe(translate_columns(translate_values(top_games, lang), lang), width='stretch')
+    st.dataframe(translate_columns(translate_values(top_games, lang), lang), width='stretch', hide_index=True)
 
     st.markdown(t("corr_header"))
     corr = correlation_matrix(df, lang=lang)
@@ -314,7 +314,7 @@ with tab3:
         posthoc = dunn_posthoc(df)
         sig_only = st.checkbox(t("posthoc_checkbox"), value=True)
         display_df = posthoc[posthoc["significant"]] if sig_only else posthoc
-        st.dataframe(translate_columns(display_df.round(4), lang), width='stretch', height=350)
+        st.dataframe(translate_columns(display_df.round(4), lang), width='stretch', height=350, hide_index=True)
 
     st.markdown(t("price_header"))
     ucretli = df.loc[df["Price_num"] > 0, "Rating_num"].dropna()
@@ -341,7 +341,7 @@ with tab4:
         st.plotly_chart(fig6, width='stretch')
 
     st.markdown(t("cluster_result_header", k=best_k))
-    st.dataframe(translate_columns(translate_values(agg.reset_index(), lang), lang), width='stretch')
+    st.dataframe(translate_columns(translate_values(agg.reset_index(), lang), lang), width='stretch', hide_index=True)
 
     cluster_scatter_df = translate_values(agg.reset_index(), lang)
     fig7 = px.scatter(
@@ -362,7 +362,7 @@ with tab5:
     st.dataframe(
         translate_columns(translate_values(
             outliers[["App", "Genre_Group", outlier_col]].sort_values(outlier_col, ascending=False), lang), lang),
-        width='stretch', height=300,
+        width='stretch', height=300, hide_index=True,
     )
 
     st.markdown(t("raw_header"))
@@ -376,7 +376,7 @@ with tab5:
     st.dataframe(
         translate_columns(translate_values(filtered[["App", "Genre_Group", "Rating_num", "Installs_num", "Reviews_num",
                                      "Size_MB", "Price_num", "Last_Updated_dt"]], lang), lang),
-        width='stretch', height=400,
+        width='stretch', height=400, hide_index=True,
     )
     st.download_button(t("download_button"), filtered.to_csv(index=False).encode("utf-8"),
                         "mobile_games_clean_data.csv", "text/csv")
@@ -389,7 +389,7 @@ with tab6:
     st.markdown(t("forecast_static_sub"))
     st.markdown(t("forecast_static_note"))
     momentum = genre_momentum_static(df)
-    st.dataframe(translate_columns(translate_values(momentum.reset_index(), lang), lang), width='stretch')
+    st.dataframe(translate_columns(translate_values(momentum.reset_index(), lang), lang), width='stretch', hide_index=True)
 
     st.markdown(t("forecast_live_sub"))
     st.markdown(t("forecast_live_note"))
@@ -444,7 +444,7 @@ with tab6:
         app_choice = st.selectbox(t("live_app_select"), sorted(snaps["title"].dropna().unique()))
         app_hist = snaps[snaps["title"] == app_choice].sort_values("fetched_at")
         st.dataframe(translate_columns(app_hist[["fetched_at", "score", "reviews", "installs", "min_installs"]], lang),
-                     width='stretch')
+                     width='stretch', hide_index=True)
 
         horizon = st.slider(t("forecast_horizon_label"), 7, 180, 30)
         forecast_metric_label = st.selectbox(
@@ -452,7 +452,7 @@ with tab6:
         )
         forecast_df = forecast_live_trend(snaps, metric=metric_options[forecast_metric_label], horizon_days=horizon)
         forecast_df = translate_values(forecast_df, lang, columns=["genre", "direction"])
-        st.dataframe(translate_columns(forecast_df.round(4), lang), width='stretch')
+        st.dataframe(translate_columns(forecast_df.round(4), lang), width='stretch', hide_index=True)
 
     st.markdown("---")
     st.markdown(t("apple_header"))
@@ -489,7 +489,7 @@ with tab6:
             .sort_values().reset_index().rename(columns={"rank": "avg_rank"})
         )
         leaderboard = translate_values(leaderboard, lang, columns=["genre"])
-        st.dataframe(translate_columns(leaderboard, lang), width='stretch')
+        st.dataframe(translate_columns(leaderboard, lang), width='stretch', hide_index=True)
 
     st.markdown("---")
     st.markdown(t("wiki_header"))
@@ -518,7 +518,7 @@ with tab6:
             .sort_values(ascending=False).reset_index()
         )
         wiki_leaderboard = translate_values(wiki_leaderboard, lang, columns=["genre"])
-        st.dataframe(translate_columns(wiki_leaderboard, lang), width='stretch')
+        st.dataframe(translate_columns(wiki_leaderboard, lang), width='stretch', hide_index=True)
 
 st.markdown("---")
 st.caption(t("footer"))
