@@ -216,7 +216,12 @@ def build_excel_report(label_a: str, label_b: str, comparison_table: pd.DataFram
 
 
 def build_pdf_report(label_a: str, label_b: str, comparison_table: pd.DataFrame,
-                      narrative: str, lang: str = "en") -> bytes:
+                      narrative: str, lang: str = "en") -> tuple:
+    """Returns (pdf_bytes, font_ok). font_ok is False if the bundled Unicode
+    font could not be loaded, in which case the PDF falls back to Helvetica
+    (Latin-1 only — Turkish characters will render as replacement boxes).
+    The caller (app.py) surfaces a visible warning when font_ok is False,
+    so a missing/undeployed font asset is never silently wrong again."""
     import os
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
@@ -229,21 +234,24 @@ def build_pdf_report(label_a: str, label_b: str, comparison_table: pd.DataFrame,
     # Register a bundled Unicode font (DejaVu Sans) so Turkish characters
     # (ş, ı, ğ, ü, ö, ç, İ, Ğ, Ş, Ö, Ç, Ü) render correctly. ReportLab's
     # built-in fonts (Helvetica etc.) only cover Latin-1 and silently
-    # replace unsupported characters with "■", which is what happened
-    # before this fix. The font is bundled in assets/fonts/ so this works
-    # identically on any deployment (Streamlit Cloud's server has no
-    # guarantee of any particular system font being installed).
+    # replace unsupported characters with "■". The font is bundled in
+    # assets/fonts/ (resolved relative to this file, not the working
+    # directory, so it works the same regardless of deployment layout).
     FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "fonts")
-    font_regular = "Helvetica"
-    font_bold = "Helvetica-Bold"
-    font_italic = "Helvetica-Oblique"
+    font_regular, font_bold, font_italic = "Helvetica", "Helvetica-Bold", "Helvetica-Oblique"
+    font_ok = False
     try:
+        required = ["DejaVuSans.ttf", "DejaVuSans-Bold.ttf", "DejaVuSans-Oblique.ttf"]
+        missing = [f for f in required if not os.path.isfile(os.path.join(FONT_DIR, f))]
+        if missing:
+            raise FileNotFoundError(f"Missing bundled font file(s) in {FONT_DIR}: {missing}")
         pdfmetrics.registerFont(TTFont("DejaVu", os.path.join(FONT_DIR, "DejaVuSans.ttf")))
         pdfmetrics.registerFont(TTFont("DejaVu-Bold", os.path.join(FONT_DIR, "DejaVuSans-Bold.ttf")))
         pdfmetrics.registerFont(TTFont("DejaVu-Oblique", os.path.join(FONT_DIR, "DejaVuSans-Oblique.ttf")))
         font_regular, font_bold, font_italic = "DejaVu", "DejaVu-Bold", "DejaVu-Oblique"
-    except Exception:
-        pass  # Falls back to Helvetica (Latin-1 only) if the bundled font is missing for any reason.
+        font_ok = True
+    except Exception as e:
+        print(f"HATA: PDF Unicode fontu yüklenemedi, Helvetica'ya (Latin-1) düşülüyor: {e}")
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=1.5 * cm, bottomMargin=1.5 * cm,
@@ -311,4 +319,4 @@ def build_pdf_report(label_a: str, label_b: str, comparison_table: pd.DataFrame,
             story.append(Paragraph(rendered, body_style))
 
     doc.build(story)
-    return buf.getvalue()
+    return buf.getvalue(), font_ok

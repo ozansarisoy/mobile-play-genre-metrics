@@ -359,9 +359,10 @@ def test_build_excel_report_produces_valid_bytes():
 def test_build_pdf_report_produces_valid_bytes():
     from ai_report import build_pdf_report
     table = pd.DataFrame({"Metric": ["Rating"], "A": ["4.2"], "B": ["4.5"]})
-    result = build_pdf_report("A", "B", table, "## Test narrative\n- point one\n*disclaimer*", lang="en")
+    result, font_ok = build_pdf_report("A", "B", table, "## Test narrative\n- point one\n*disclaimer*", lang="en")
     assert isinstance(result, bytes) and len(result) > 100
     assert result[:5] == b"%PDF-"
+    assert font_ok is True, "Bundled Unicode font failed to load in this test environment"
 
 
 def test_pdf_report_bundled_font_exists():
@@ -383,7 +384,8 @@ def test_pdf_report_renders_turkish_characters_correctly():
 
     table = pd.DataFrame({"Metrik": ["Puan"], "A": ["4.2"], "B": ["4.5"]})
     narrative = "Türkçe karakter testi: şımärşĞÜÖÇİ öğüşçı — Karşılaştırma sonuçları"
-    pdf_bytes = build_pdf_report("A", "B", table, narrative, lang="tr")
+    pdf_bytes, font_ok = build_pdf_report("A", "B", table, narrative, lang="tr")
+    assert font_ok is True, "Bundled Unicode font failed to load — this test env lacks assets/fonts/"
 
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
         text = pdf.pages[0].extract_text()
@@ -409,3 +411,20 @@ def test_ai_report_provides_both_languages_regardless_of_ui_language():
     assert en_report != tr_report
     assert "simulation" in en_report.lower()
     assert "simülasyon" in tr_report.lower()
+
+
+def test_build_pdf_report_reports_font_failure_instead_of_failing_silently():
+    """Regression test for the exact bug reported after v1.4.1: the PDF font
+    fix worked locally but a user still got garbled '■' characters, with no
+    way to tell why. This confirms build_pdf_report NEVER silently succeeds
+    with the wrong font — if the bundled font can't be found, font_ok must
+    be False so the caller (app.py) can show a visible warning instead of
+    producing a mojibake PDF with no explanation."""
+    import unittest.mock as mock
+    from ai_report import build_pdf_report
+
+    table = pd.DataFrame({"Metrik": ["Puan"], "A": ["4.2"], "B": ["4.5"]})
+    with mock.patch("os.path.isfile", return_value=False):
+        pdf_bytes, font_ok = build_pdf_report("A", "B", table, "Test", lang="tr")
+    assert font_ok is False
+    assert isinstance(pdf_bytes, bytes) and pdf_bytes[:5] == b"%PDF-"  # still produces *a* PDF, just flagged

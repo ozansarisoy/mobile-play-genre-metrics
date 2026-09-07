@@ -248,6 +248,7 @@ with tab2:
         st.markdown(f"#### {t('ai_sim_export_header')}")
         lang_file_tag = {"en": "EN", "tr": "TR"}
         exp_col1, exp_col2 = st.columns(2)
+        pdf_font_warning_needed = False
         with exp_col1:
             st.caption(t("ai_sim_current_lang"))
             excel_bytes = build_excel_report(label_a, label_b, comparison_table, narrative, lang=lang)
@@ -257,7 +258,8 @@ with tab2:
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 key="dl_excel_compare",
             )
-            pdf_bytes = build_pdf_report(label_a, label_b, comparison_table, narrative, lang=lang)
+            pdf_bytes, font_ok = build_pdf_report(label_a, label_b, comparison_table, narrative, lang=lang)
+            pdf_font_warning_needed = pdf_font_warning_needed or not font_ok
             st.download_button(
                 t("ai_sim_download_pdf"), pdf_bytes,
                 f"MPGM_{label_a}_vs_{label_b}_{lang_file_tag[lang]}.pdf".replace(" ", "_"),
@@ -274,7 +276,8 @@ with tab2:
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 key="dl_excel_compare_other",
             )
-            pdf_bytes_other = build_pdf_report(label_a, label_b, other_table, other_narrative, lang=other_lang)
+            pdf_bytes_other, font_ok_other = build_pdf_report(label_a, label_b, other_table, other_narrative, lang=other_lang)
+            pdf_font_warning_needed = pdf_font_warning_needed or not font_ok_other
             st.download_button(
                 "📄 Download as PDF" if other_lang == "en" else "📄 PDF olarak indir",
                 pdf_bytes_other,
@@ -282,6 +285,8 @@ with tab2:
                 "application/pdf",
                 key="dl_pdf_compare_other",
             )
+        if pdf_font_warning_needed:
+            st.warning(t("ai_sim_font_warning"))
     else:
         st.info(t("compare_no_selection"))
 

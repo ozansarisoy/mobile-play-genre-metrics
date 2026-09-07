@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented here.
 
+## [1.4.2] — 2026-09-07
+### Changed
+- **`build_pdf_report` no longer fails silently.** After the v1.4.1 font fix, a user
+  still received a PDF with garbled Turkish characters (`■`), with no visible sign of
+  why. The function was tested extensively in development (including from a different
+  working directory, simulating deployment path differences) and worked correctly
+  every time — meaning the most likely explanation was the fix not yet being live on
+  the deployed app at the time that PDF was generated. Rather than leave this as a
+  guess, `build_pdf_report` now returns `(pdf_bytes, font_ok)` instead of just bytes:
+  if the bundled Unicode font can't be found or registered for any reason, `font_ok`
+  is `False` and the app shows a visible warning explaining that the PDF may not
+  render Turkish characters correctly — instead of silently producing the same
+  confusing bug again with no explanation. New regression test mocks a missing font
+  file and confirms this contract holds. Excel export is unaffected either way.
+
+**If you still see `■` characters after updating to this version**, the warning
+banner will now tell you definitively whether it's a font-loading problem — please
+report back with that banner text so we can pin down the exact deployment issue
+rather than guessing at fixes.
+
 ## [1.4.1] — 2026-09-07
 ### Fixed
 - **Garbled Turkish characters in the PDF comparison report** (`■` in place of ş, ı,
