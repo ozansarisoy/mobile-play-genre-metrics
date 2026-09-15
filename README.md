@@ -2,6 +2,8 @@
 <h1 align="center">MPGM — Mobile Play Genre Metrics</h1>
 <p align="center"><i>Which mobile game genre is winning right now — and which one is next?</i></p>
 
+Streamlit Link: https://mpgm-genre-metrics.streamlit.app/
+
 ---
 
 ### What problem does this solve?
